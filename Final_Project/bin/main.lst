@@ -1,0 +1,79 @@
+
+Freescale HC12-Assembler 
+(c) Copyright Freescale 1987-2010
+
+ Abs. Rel.   Loc    Obj. code   Source line
+ ---- ----   ------ ---------   -----------
+    1    1                      ;*****************************************************************
+    2    2                      ;* Lab1.ASM
+    3    3                      ;
+    4    4                      ;Code Entry, Assembly, and Execution 
+    5    5                      ;(Put your name and date here) 
+    6    6                      ;--------------------------------------- 
+    7    7                      ;* -this is the sample code for Lab1
+    8    8                      ;* -for Full Chip Simulation or Board -- select your target
+    9    9                      ;* DO NOT DELETE ANY LINES IN THIS TEMPLATE
+   10   10                      ;* --ONLY FILL IN SECTIONS
+   11   11                      ;*****************************************************************
+   12   12                      ; export symbols
+   13   13                                  XDEF Entry, _Startup            ; export 'Entry' symbol
+   14   14                                  ABSENTRY Entry        ; for absolute assembly: mark this as application entry point
+   15   15                      
+   16   16                      ; Include derivative-specific definitions 
+   17   17                      		INCLUDE 'derivative.inc' 
+ 8677 8653i                             ENDIF
+ 8686   18                      		
+ 8687   19                      ;-------------------------------------------------- 
+ 8688   20                      ; Equates Section  
+ 8689   21                      ;----------------------------------------------------  
+ 8690   22          0000 2000   ROMStart    EQU  $2000  ; absolute address to place my code
+ 8691   23                      
+ 8692   24                      ;---------------------------------------------------- 
+ 8693   25                      ; Variable/Data Section
+ 8694   26                      ;----------------------------------------------------  
+ 8695   27                                  ORG RAMStart   ; loc $1000  (RAMEnd = $3FFF)
+ 8696   28                      ; Insert here your data definitions here
+ 8697   29                      
+ 8698   30  a001000 00          sum dc.b 0 ;Sum byte stored here 
+ 8699   31                      
+ 8700   32                             INCLUDE 'utilities.inc'
+ 8816   33                             INCLUDE 'LCD.inc'
+ 9158   34                      
+ 9159   35                      ;---------------------------------------------------- 
+ 9160   36                      ; Code Section
+ 9161   37                      ;---------------------------------------------------- 
+ 9162   38                                  ORG   ROMStart  ; loc $2000
+ 9163   39                      Entry:
+ 9164   40                      _Startup:
+ 9165   41                                  ; remap the RAM &amp; EEPROM here. See EB386.pdf
+ 9166   42          0000 0000    ifdef _HCS12_SERIALMON
+ 9177   53                        endif
+ 9178   54                      
+ 9179   55                      ;---------------------------------------------------- 
+ 9180   56                      ; Insert your code here
+ 9181   57                      ;---------------------------------------------------- 
+ 9182   58  a002000 CF20 00             lds   #ROMStart ; load stack pointer
+ 9183   59                       
+ 9184   60  a002003 8625         	ldaa #$25 	;Load $25 to reg A 
+ 9185   61  a002005 8B34         	adda #$34 	;Add $34 to A 
+ 9186   62  a002007 8B11         	adda #$11 	;Add $11 to A 
+ 9187   63  a002009 8B12         	adda #18 	;Add $12 to A 
+ 9188   64  a00200B 8B1C         	adda #%00011100 ;Add $1C to A 
+ 9189   65  a00200D 7A10 00      	staa sum 	;Store total in 'sum' M[$1000] 
+ 9190   66  a002010 0620 10     here: jmp here  	;Stay here forever to end program 
+ 9191   67                       
+ 9192   68                      ;-------End Program Lab#1------------- 
+ 9193   69                      
+ 9194   70                                               
+ 9195   71                      ;**************************************************************
+ 9196   72                      ;*                 Interrupt Vectors                          *
+ 9197   73                      ;**************************************************************
+
+Freescale HC12-Assembler 
+(c) Copyright Freescale 1987-2010
+
+ Abs. Rel.   Loc    Obj. code   Source line
+ ---- ----   ------ ---------   -----------
+ 9198   74                                  ORG   Vreset
+ 9199   75  a00FFFE 2000                    DC.W  Entry         ; Reset Vector
+ 9200   76                       
