@@ -52,28 +52,117 @@ Freescale HC12-Assembler
  9179   55                      ;---------------------------------------------------- 
  9180   56                      ; Insert your code here
  9181   57                      ;---------------------------------------------------- 
- 9182   58  a002000 CF20 00             lds   #ROMStart ; load stack pointer
- 9183   59                       
- 9184   60  a002003 8625         	ldaa #$25 	;Load $25 to reg A 
- 9185   61  a002005 8B34         	adda #$34 	;Add $34 to A 
- 9186   62  a002007 8B11         	adda #$11 	;Add $11 to A 
- 9187   63  a002009 8B12         	adda #18 	;Add $12 to A 
- 9188   64  a00200B 8B1C         	adda #%00011100 ;Add $1C to A 
- 9189   65  a00200D 7A10 00      	staa sum 	;Store total in 'sum' M[$1000] 
- 9190   66  a002010 0620 10     here: jmp here  	;Stay here forever to end program 
- 9191   67                       
- 9192   68                      ;-------End Program Lab#1------------- 
+ 9182   58                              
+ 9183   59                      ;--------------------------------
+ 9184   60                      ; Two Digit Calculator
+ 9185   61                      ; HCS12 / CodeWarrior
+ 9186   62                      ;--------------------------------
+ 9187   63                      
+ 9188   64  a002000 163A 00             JSR TermInit
+ 9189   65                      
+ 9190   66                      ;--------------------------------
+ 9191   67                      ; Get User Input
+ 9192   68                      ;--------------------------------
  9193   69                      
- 9194   70                                               
- 9195   71                      ;**************************************************************
- 9196   72                      ;*                 Interrupt Vectors                          *
- 9197   73                      ;**************************************************************
+ 9194   70  a002003 CC20 4B             LDD #Prompt
+ 9195   71  a002006 163A 23             JSR printf
+ 9196   72                      
+ 9197   73                      ; First number (two digits)
 
 Freescale HC12-Assembler 
 (c) Copyright Freescale 1987-2010
 
  Abs. Rel.   Loc    Obj. code   Source line
  ---- ----   ------ ---------   -----------
- 9198   74                                  ORG   Vreset
- 9199   75  a00FFFE 2000                    DC.W  Entry         ; Reset Vector
- 9200   76                       
+ 9198   74                      
+ 9199   75  a002009 163A 15             JSR getchar
+ 9200   76  a00200C 8030                SUBA #$30
+ 9201   77  a00200E 7A20 43             STAA Tens1
+ 9202   78                      
+ 9203   79  a002011 163A 15             JSR getchar
+ 9204   80  a002014 8030                SUBA #$30
+ 9205   81  a002016 7A20 44             STAA Ones1
+ 9206   82                      
+ 9207   83                      ; Second number (two digits)
+ 9208   84                      
+ 9209   85  a002019 163A 15             JSR getchar
+ 9210   86  a00201C 8030                SUBA #$30
+ 9211   87  a00201E 7A20 45             STAA Tens2
+ 9212   88                      
+ 9213   89  a002021 163A 15             JSR getchar
+ 9214   90  a002024 8030                SUBA #$30
+ 9215   91  a002026 7A20 46             STAA Ones2
+ 9216   92                      
+ 9217   93                      ;--------------------------------
+ 9218   94                      ; Convert First Number to Decimal
+ 9219   95                      ;--------------------------------
+ 9220   96                      
+ 9221   97  a002029 B620 43             LDAA Tens1
+ 9222   98  a00202C C60A                LDAB #10
+ 9223   99  a00202E 12                  MUL
+ 9224  100  a00202F FB20 44             ADDB Ones1
+ 9225  101  a002032 7C20 47             STD Num1
+ 9226  102                      
+ 9227  103                      ;--------------------------------
+ 9228  104                      ; Convert Second Number to Decimal
+ 9229  105                      ;--------------------------------
+ 9230  106                      
+ 9231  107  a002035 B620 45             LDAA Tens2
+ 9232  108  a002038 C60A                LDAB #10
+ 9233  109  a00203A 12                  MUL
+ 9234  110  a00203B FB20 46             ADDB Ones2
+ 9235  111  a00203E 7C20 49             STD Num2
+ 9236  112                      
+ 9237  113                      ;--------------------------------
+ 9238  114                      ; Calculator Operations
+ 9239  115                      ;--------------------------------
+ 9240  116                      
+ 9241  117                      ; Num1 and Num2 now contain
+ 9242  118                      ; the two decimal numbers.
+ 9243  119                      
+ 9244  120                      ; ADDITION WILL GO HERE
+ 9245  121                      ; SUBTRACTION WILL GO HERE
+ 9246  122                      ; MULTIPLICATION WILL GO HERE
+ 9247  123                      ; DIVISION WILL GO HERE
+ 9248  124                      
+ 9249  125                      Done:
+ 9250  126  a002041 20FE                BRA Done
+ 9251  127                      
+ 9252  128                      ;--------------------------------
+ 9253  129                      ; Variables (place in RAM section)
+ 9254  130                      ;--------------------------------
+ 9255  131                      
+ 9256  132  a002043             Tens1   RMB 1
+ 9257  133  a002044             Ones1   RMB 1
+ 9258  134  a002045             Tens2   RMB 1
+ 9259  135  a002046             Ones2   RMB 1
+ 9260  136                      
+ 9261  137  a002047             Num1    RMB 2
+
+Freescale HC12-Assembler 
+(c) Copyright Freescale 1987-2010
+
+ Abs. Rel.   Loc    Obj. code   Source line
+ ---- ----   ------ ---------   -----------
+ 9262  138  a002049             Num2    RMB 2
+ 9263  139                      
+ 9264  140                      ;--------------------------------
+ 9265  141                      ; Prompt (place in ROM section)
+ 9266  142                      ;--------------------------------
+ 9267  143                      
+ 9268  144  a00204B 456E 7465   Prompt  DC.B 'Enter four digits: ',0
+             00204F 7220 666F  
+             002053 7572 2064  
+             002057 6967 6974  
+             00205B 733A 2000  
+ 9269  145                       
+ 9270  146                       
+ 9271  147                      ;-------End Program Lab#1------------- 
+ 9272  148                      
+ 9273  149                                               
+ 9274  150                      ;**************************************************************
+ 9275  151                      ;*                 Interrupt Vectors                          *
+ 9276  152                      ;**************************************************************
+ 9277  153                                  ORG   Vreset
+ 9278  154  a00FFFE 2000                    DC.W  Entry         ; Reset Vector
+ 9279  155                       

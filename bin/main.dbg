@@ -46,15 +46,94 @@ _Startup:
 ;---------------------------------------------------- 
 ; Insert your code here
 ;---------------------------------------------------- 
-        lds   #ROMStart ; load stack pointer
+        
+;--------------------------------
+; Two Digit Calculator
+; HCS12 / CodeWarrior
+;--------------------------------
+
+        JSR TermInit
+
+;--------------------------------
+; Get User Input
+;--------------------------------
+
+        LDD #Prompt
+        JSR printf
+
+; First number (two digits)
+
+        JSR getchar
+        SUBA #$30
+        STAA Tens1
+
+        JSR getchar
+        SUBA #$30
+        STAA Ones1
+
+; Second number (two digits)
+
+        JSR getchar
+        SUBA #$30
+        STAA Tens2
+
+        JSR getchar
+        SUBA #$30
+        STAA Ones2
+
+;--------------------------------
+; Convert First Number to Decimal
+;--------------------------------
+
+        LDAA Tens1
+        LDAB #10
+        MUL
+        ADDB Ones1
+        STD Num1
+
+;--------------------------------
+; Convert Second Number to Decimal
+;--------------------------------
+
+        LDAA Tens2
+        LDAB #10
+        MUL
+        ADDB Ones2
+        STD Num2
+
+;--------------------------------
+; Calculator Operations
+;--------------------------------
+
+; Num1 and Num2 now contain
+; the two decimal numbers.
+
+; ADDITION WILL GO HERE
+; SUBTRACTION WILL GO HERE
+; MULTIPLICATION WILL GO HERE
+; DIVISION WILL GO HERE
+
+Done:
+        BRA Done
+
+;--------------------------------
+; Variables (place in RAM section)
+;--------------------------------
+
+Tens1   RMB 1
+Ones1   RMB 1
+Tens2   RMB 1
+Ones2   RMB 1
+
+Num1    RMB 2
+Num2    RMB 2
+
+;--------------------------------
+; Prompt (place in ROM section)
+;--------------------------------
+
+Prompt  DC.B 'Enter four digits: ',0
  
- 	ldaa #$25 	;Load $25 to reg A 
- 	adda #$34 	;Add $34 to A 
- 	adda #$11 	;Add $11 to A 
- 	adda #18 	;Add $12 to A 
- 	adda #%00011100 ;Add $1C to A 
- 	staa sum 	;Store total in 'sum' M[$1000] 
-here: jmp here  	;Stay here forever to end program 
  
 ;-------End Program Lab#1------------- 
 
