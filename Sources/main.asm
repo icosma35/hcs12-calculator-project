@@ -119,8 +119,24 @@ _Startup:
 
 ; ADDITION WILL GO HERE
 ; SUBTRACTION WILL GO HERE
-; MULTIPLICATION WILL GO HERE
-; DIVISION WILL GO HERE
+;--------------------------------
+; Multiplication: Num1 x Num2
+;--------------------------------
+Multiply: 
+      LDX #Num1
+      LDAA 1,x
+      LDX #Num2
+      LDAB 1,x
+      MUL
+      STD Result
+      RTS
+;--------------------------------
+; Divide: Num1 x Num2
+;--------------------------------
+Divide: 
+     LDX Num2
+     CPX #0
+     BEQ error_zero
 
 Done:
         BRA Done
