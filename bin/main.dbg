@@ -28,7 +28,22 @@ ROMStart    EQU  $2000  ; absolute address to place my code
             ORG RAMStart   ; loc $1000  (RAMEnd = $3FFF)
 ; Insert here your data definitions here
 
-sum dc.b 0 ;Sum byte stored here 
+sum dc.b 0 ;Sum byte stored here
+
+Tens1   RMB 1
+Ones1   RMB 1
+Tens2   RMB 1
+Ones2   RMB 1
+
+Num1    RMB 2
+Num2    RMB 2
+Result  RMB 2
+
+Hundreds   RMB 1
+TensOut    RMB 1
+OnesOut    RMB 1
+TempResult RMB 2
+NegativeFlag RMB 1 
 
        INCLUDE 'utilities.inc'
        INCLUDE 'LCD.inc'
@@ -64,23 +79,22 @@ _Startup:
 ; First number (two digits)
 
         JSR getchar
-        SUBA #$30
-        STAA Tens1
+        SUBB #$30
+        STAB Tens1
 
         JSR getchar
-        SUBA #$30
-        STAA Ones1
+        SUBB #$30
+        STAB Ones1
 
 ; Second number (two digits)
 
         JSR getchar
-        SUBA #$30
-        STAA Tens2
+        SUBB #$30
+        STAB Tens2
 
         JSR getchar
-        SUBA #$30
-        STAA Ones2
-
+        SUBB #$30
+        STAB Ones2
 ;--------------------------------
 ; Convert First Number to Decimal
 ;--------------------------------
@@ -100,39 +114,197 @@ _Startup:
         MUL
         ADDB Ones2
         STD Num2
+;--------------------------------
+; Select Operation
+;--------------------------------
 
+        LDD #Menu
+        JSR printf
+
+        JSR getchar
+
+        CMPB #'1'
+        BEQ Addition
+
+        CMPB #'2'
+        BEQ Subtraction
+
+        CMPB #'3'
+        BEQ Multiply
+
+        CMPB #'4'
+        BEQ Divide
+
+        BRA Done
+        
 ;--------------------------------
 ; Calculator Operations
 ;--------------------------------
+Addition:
+        LDD Num1
+        ADDD Num2
+        STD Result
+        BRA DisplayResult
 
-; Num1 and Num2 now contain
-; the two decimal numbers.
-
-; ADDITION WILL GO HERE
-; SUBTRACTION WILL GO HERE
-; MULTIPLICATION WILL GO HERE
-; DIVISION WILL GO HERE
+Subtraction:
+      LDD Num1
+      SUBD Num2
+      STD Result
+      BRA DisplayResult
+;--------------------------------
+; Multiplication: Num1 x Num2
+;--------------------------------
+Multiply: 
+      LDX #Num1
+      LDAA 1,x
+      LDX #Num2
+      LDAB 1,x
+      MUL
+      STD Result
+      RTS
+;--------------------------------
+; Divide: Num1 x Num2
+;--------------------------------
+Divide: 
+     LDX Num2
+     CPX #0
+     BEQ error_zero
+     
+error_zero:
+     LDD #ZeroError
+     JSR printf
+     BRA Done
 
 Done:
         BRA Done
+        
+
+;--------------------------------
+; Display Result in Decimal
+;--------------------------------
+DisplayResult:
+        LDD #ResultMsg
+        JSR printf
+
+        CLR NegativeFlag
+
+        LDD Result
+        TSTA
+        BPL ConvertResult
+
+        ; Convert negative result to positive
+        LDD Result
+        COMA
+        COMB
+        ADDD #1
+        STD TempResult
+
+        LDAA #1
+        STAA NegativeFlag
+        BRA StartConversion
+
+ConvertResult:
+        STD TempResult
+
+StartConversion:
+        LDAA NegativeFlag
+        BEQ ConvertHundreds
+
+        LDAB #'-'
+        JSR putchar
+
+;--------------------------------
+; Convert Hundreds
+;--------------------------------
+ConvertHundreds:
+        CLR Hundreds
+        CLR TensOut
+        CLR OnesOut
+
+        LDD TempResult
+
+HundredsLoop:
+        CPD #100
+        BLO ConvertTens
+
+        SUBD #100
+        INC Hundreds
+        BRA HundredsLoop
+
+;--------------------------------
+; Convert Tens
+;--------------------------------
+ConvertTens:
+        STD TempResult
+
+TensLoop:
+        LDD TempResult
+        CPD #10
+        BLO ConvertOnes
+
+        SUBD #10
+        STD TempResult
+        INC TensOut
+        BRA TensLoop
+
+;--------------------------------
+; Convert Ones
+;--------------------------------
+ConvertOnes:
+        LDD TempResult
+        STAB OnesOut
+
+;--------------------------------
+; Print Decimal Result
+;--------------------------------
+PrintResult:
+        LDAA Hundreds
+        BEQ CheckTens
+
+        LDAB Hundreds
+        ADDB #$30
+        JSR putchar
+
+CheckTens:
+        LDAA Hundreds
+        BNE PrintTens
+
+        LDAA TensOut
+        BEQ PrintOnes
+
+PrintTens:
+        LDAB TensOut
+        ADDB #$30
+        JSR putchar
+
+PrintOnes:
+        LDAB OnesOut
+        ADDB #$30
+        JSR putchar
+
+        JMP Done
 
 ;--------------------------------
 ; Variables (place in RAM section)
 ;--------------------------------
 
-Tens1   RMB 1
-Ones1   RMB 1
-Tens2   RMB 1
-Ones2   RMB 1
 
-Num1    RMB 2
-Num2    RMB 2
 
 ;--------------------------------
 ; Prompt (place in ROM section)
 ;--------------------------------
 
 Prompt  DC.B 'Enter four digits: ',0
+
+Menu    DC.B 'Select Operation:',13,10
+        DC.B '1. Addition',13,10
+        DC.B '2. Subtraction',13,10
+        DC.B '3. Multiplication',13,10
+        DC.B '4. Division',13,10,0
+        
+ZeroError DC.B 'Error: Cannot divide by zero!',13,10,0
+
+ResultMsg DC.B 'Result: ',0
  
  
 ;-------End Program Lab#1------------- 
