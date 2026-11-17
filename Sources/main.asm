@@ -327,6 +327,7 @@ SECOND_INVALID:
 
 GET_OPERATION:
             JSR  getchar
+            JSR  putchar
             RTS
 
 ;====================================================
