@@ -251,8 +251,148 @@ _Startup:
 
 ;---------------------------------------------------- 
 ; Insert your code here
-;---------------------------------------------------- 
-        
+;----------------------------------------------------     
+        ORG   $2000
+
+MAIN:   
+        LDS #$2000  ; Initialize the stack pointer
+        JSR   TermInit ; Initialize the terminal
+        CLRA   ; Initialize variables to zero
+        CLRB
+
+        STAA  NUM1
+        STAA  NUM2
+        STAA  OPERATION
+        STD   RESULT
+        STAA  QUOTIENT
+        STAA  REMAINDER
+
+        STAA  ONES
+        STAA  TENS
+        STAA  HUNDREDS
+        STAA  THOUSANDS
+
+MAIN_LOOP:
+        LDD #NUM1_PROMPT
+        JSR printf
+        JSR   GET_NUM1 ; Read and validate the first number
+        LDD #NUM2_PROMPT
+        JSR printf
+        JSR   GET_NUM2  ; Read and validate the second number
+
+;==================================================
+; DISPLAY MENU AND READ OPERATION
+;==================================================
+
+OPERATION_LOOP:
+        JSR   MENU_MSG ; Display the calculator menu
+
+        JSR   GET_OPERATION   ; Read the selected operation
+
+        STAA  OPERATION   ; Store the selected operation
+
+        CMPA  #'+'  ; Check for addition
+        BEQ   DO_ADD
+        CMPA  #'-'  ; Check for subtraction
+        BEQ   DO_SUB
+
+        CMPA  #'*'   ; Check for multiplication
+        BEQ   DO_MUL
+
+        CMPA  #'/' ; Check for division
+        BEQ   DO_DIV
+
+        LDD   #INVALID_OP_MSG   ; Display an error for invalid operations
+        JSR   printf
+
+        BRA   OPERATION_LOOP   ; Ask the user to select again
+
+;==================================================
+; ADDITION
+;==================================================
+DO_ADD:
+        JSR   ADD_NUM ; Call the addition subroutine
+
+        BRA   SHOW_RESULT  ; Display the calculated result
+
+;==================================================
+; SUBTRACTION
+;==================================================
+
+DO_SUB:
+        JSR   SUB_NUM ; Call the subtraction subroutine
+
+       BRA   SHOW_RESULT ; Display the calculated result
+;==================================================
+; MULTIPLICATION
+;==================================================
+
+DO_MUL:
+        JSR   MUL_NUM ; Call the multiplication subroutine
+
+        BRA   SHOW_RESULT  ; Display the calculated result
+
+;==================================================
+; DIVISION
+;==================================================
+DO_DIV:
+        LDAA  NUM2  ; Check whether the divisor is zero
+        BEQ   DIV_ERROR
+        JSR   DIV_NUM   ; Call the division subroutine
+
+        BRA   SHOW_RESULT   ; Display the quotient and remainder
+;==================================================
+; DIVISION BY ZERO ERROR
+;==================================================
+DIV_ERROR:
+        LDD   #DIV_ZERO_MSG  ; Display the division by zero message
+        JSR   printf
+        BRA   ASK_AGAIN   ; Skip calculation and ask to repeat
+;==================================================
+; DISPLAY RESULT
+;==================================================
+SHOW_RESULT:
+        JSR   DISPLAY_RESULT
+;==================================================
+; ASK FOR ANOTHER CALCULATION
+;==================================================
+ASK_AGAIN:
+        JSR   ASK_REPEAT  ; Read the user's Y/N response
+
+        CMPA  #'Y'    ; Repeat if the user enters Y
+        BEQ   MAIN_LOOP
+        CMPA  #'y'   ; Repeat if the user enters y
+        BEQ   MAIN_LOOP
+        CMPA  #'N'   ; Exit if the user enters N
+        BEQ   EXIT
+        CMPA  #'n'  ; Exit if the user enters n
+        BEQ   EXIT
+        LDD   #INVALID_OP_MSG   ; Reject any other response
+        JSR   printf
+        BRA   ASK_AGAIN
+;==================================================
+; SHOW CALCULATOR MENU
+;==================================================
+SHOW_MENU:
+        LDD   #MENU_MSG   ; Print the available operations
+        JSR   printf
+        LDD   #CHOICE_PROMPT  ; Print the operation prompt
+        JSR   printf
+        RTS   ; Return to the main program
+
+;==================================================
+; EXIT PROGRAM
+;==================================================
+EXIT:
+        LDD   #EXIT_MSG   ; Display the exit message
+        JSR   printf
+STOP:
+        BRA   STOP   ; Stop program execution
+
+;==================================================
+; END OF MAIN PROGRAM
+;==================================================
+    
 ;--------------------------------
 ; Two Digit Calculator
 ; HCS12 / CodeWarrior
