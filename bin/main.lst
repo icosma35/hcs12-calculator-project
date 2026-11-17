@@ -4,381 +4,615 @@ Freescale HC12-Assembler
 
  Abs. Rel.   Loc    Obj. code   Source line
  ---- ----   ------ ---------   -----------
-    1    1                      ;*****************************************************************
-    2    2                      ;* Lab1.ASM
-    3    3                      ;
-    4    4                      ;Code Entry, Assembly, and Execution 
-    5    5                      ;(Put your name and date here) 
-    6    6                      ;--------------------------------------- 
-    7    7                      ;* -this is the sample code for Lab1
-    8    8                      ;* -for Full Chip Simulation or Board -- select your target
-    9    9                      ;* DO NOT DELETE ANY LINES IN THIS TEMPLATE
-   10   10                      ;* --ONLY FILL IN SECTIONS
-   11   11                      ;*****************************************************************
-   12   12                      ; export symbols
-   13   13                                  XDEF Entry, _Startup            ; export 'Entry' symbol
-   14   14                                  ABSENTRY Entry        ; for absolute assembly: mark this as application entry point
-   15   15                      
-   16   16                      ; Include derivative-specific definitions 
-   17   17                      		INCLUDE 'derivative.inc' 
- 8677 8653i                             ENDIF
- 8686   18                      		
- 8687   19                      ;-------------------------------------------------- 
- 8688   20                      ; Equates Section  
- 8689   21                      ;----------------------------------------------------  
- 8690   22          0000 2000   ROMStart    EQU  $2000  ; absolute address to place my code
- 8691   23                      
- 8692   24                      ;---------------------------------------------------- 
- 8693   25                      ; Variable/Data Section
- 8694   26                      ;----------------------------------------------------  
- 8695   27                                  ORG RAMStart   ; loc $1000  (RAMEnd = $3FFF)
- 8696   28                      ; Insert here your data definitions here
- 8697   29                      
- 8698   30  a001000 00          sum dc.b 0 ;Sum byte stored here
+    1    1                      
+    2    2                      ;*****************************************************************
+    3    3                      ;* Lab1.ASM
+    4    4                      ;* Two-Digit Calculator - HCS12 / CodeWarrior
+    5    5                      ;* Integrated Team Project
+    6    6                      ;*****************************************************************
+    7    7                      
+    8    8                      ; Export symbols
+    9    9                                  XDEF Entry, _Startup
+   10   10                                  ABSENTRY Entry
+   11   11                      
+   12   12                      ; Include derivative-specific definitions
+   13   13                                  INCLUDE 'derivative.inc'
+ 8673 8653i                             ENDIF
+ 8682   14                      
+ 8683   15                      ;----------------------------------------------------
+ 8684   16                      ; Equates Section
+ 8685   17                      ;----------------------------------------------------
+ 8686   18          0000 2000   ROMStart    EQU $2000
+ 8687   19                      
+ 8688   20                      ;----------------------------------------------------
+ 8689   21                      ; Variable/Data Section (RAM)
+ 8690   22                      ;----------------------------------------------------
+ 8691   23                                  ORG RAMStart
+ 8692   24                      
+ 8693   25  a001000             NUM1          DS.B 1    ; First number (00-99)
+ 8694   26  a001001             NUM2          DS.B 1    ; Second number (00-99)
+ 8695   27  a001002             OPERATION     DS.B 1    ; Selected operation
+ 8696   28  a001003             RESULT        DS.W 1    ; 16-bit result
+ 8697   29  a001005             QUOTIENT      DS.B 1    ; Division quotient
+ 8698   30  a001006             REMAINDER     DS.B 1    ; Division remainder
  8699   31                      
- 8700   32  a001001             Tens1   RMB 1
- 8701   33  a001002             Ones1   RMB 1
- 8702   34  a001003             Tens2   RMB 1
- 8703   35  a001004             Ones2   RMB 1
+ 8700   32  a001007             TENS1         DS.B 1    ; Tens digit of NUM1
+ 8701   33  a001008             ONES1         DS.B 1    ; Ones digit of NUM1
+ 8702   34  a001009             TENS2         DS.B 1    ; Tens digit of NUM2
+ 8703   35  a00100A             ONES2         DS.B 1    ; Ones digit of NUM2
  8704   36                      
- 8705   37  a001005             Num1    RMB 2
- 8706   38  a001007             Num2    RMB 2
- 8707   39  a001009             Result  RMB 2
+ 8705   37  a00100B             NEGATIVE_FLAG DS.B 1    ; Negative result indicator
+ 8706   38  a00100C             TEMP_RESULT   DS.W 1    ; Temporary result
+ 8707   39  a00100E             DIGIT_COUNT   DS.B 1    ; Number of digits to print
  8708   40                      
- 8709   41  a00100B             Hundreds   RMB 1
- 8710   42  a00100C             TensOut    RMB 1
- 8711   43  a00100D             OnesOut    RMB 1
- 8712   44  a00100E             TempResult RMB 2
- 8713   45  a001010             NegativeFlag RMB 1 
- 8714   46                      
- 8715   47                             INCLUDE 'utilities.inc'
- 8831   48                             INCLUDE 'LCD.inc'
- 9173   49                      
- 9174   50                      ;---------------------------------------------------- 
- 9175   51                      ; Code Section
- 9176   52                      ;---------------------------------------------------- 
- 9177   53                                  ORG   ROMStart  ; loc $2000
- 9178   54                      Entry:
- 9179   55                      _Startup:
- 9180   56                                  ; remap the RAM &amp; EEPROM here. See EB386.pdf
- 9181   57          0000 0000    ifdef _HCS12_SERIALMON
- 9192   68                        endif
- 9193   69                      
- 9194   70                      ;---------------------------------------------------- 
- 9195   71                      ; Insert your code here
- 9196   72                      ;---------------------------------------------------- 
- 9197   73                              
+ 8709   41                                  INCLUDE 'utilities.inc'
+ 8825   42                                  INCLUDE 'LCD.inc'
+ 9167   43                      
+ 9168   44                      ;----------------------------------------------------
+ 9169   45                      ; Code Section (ROM)
+ 9170   46                      ;----------------------------------------------------
+ 9171   47                                  ORG ROMStart
+ 9172   48                      
+ 9173   49                      Entry:
+ 9174   50                      _Startup:
+ 9175   51                      
+ 9176   52          0000 0000    ifdef _HCS12_SERIALMON
+ 9183   59                       endif
+ 9184   60                      
+ 9185   61  a002000 0621 7B                 JMP MAIN
+ 9186   62                      
+ 9187   63                      ;====================================================
+ 9188   64                      ; PROMPTS AND MESSAGES
+ 9189   65                      ;====================================================
+ 9190   66                      
+ 9191   67                      NUM1_PROMPT:
+ 9192   68  a002003 0D0A                    DC.B 13,10
+ 9193   69  a002005 456E 7465               DC.B "Enter first number (00-99): ",0
 
 Freescale HC12-Assembler 
 (c) Copyright Freescale 1987-2010
 
  Abs. Rel.   Loc    Obj. code   Source line
  ---- ----   ------ ---------   -----------
- 9198   74                      ;--------------------------------
- 9199   75                      ; Two Digit Calculator
- 9200   76                      ; HCS12 / CodeWarrior
- 9201   77                      ;--------------------------------
- 9202   78                      
- 9203   79  a002000 163A 00             JSR TermInit
- 9204   80                      
- 9205   81                      ;--------------------------------
- 9206   82                      ; Get User Input
- 9207   83                      ;--------------------------------
- 9208   84                      
- 9209   85  a002003 CC21 20             LDD #Prompt
- 9210   86  a002006 163A 23             JSR printf
- 9211   87                      
- 9212   88                      ; First number (two digits)
+             002009 7220 6669  
+             00200D 7273 7420  
+             002011 6E75 6D62  
+             002015 6572 2028  
+             002019 3030 2D39  
+             00201D 3929 3A20  
+             002021 00         
+ 9194   70                      
+ 9195   71                      NUM2_PROMPT:
+ 9196   72  a002022 0D0A                    DC.B 13,10
+ 9197   73  a002024 456E 7465               DC.B "Enter second number (00-99): ",0
+             002028 7220 7365  
+             00202C 636F 6E64  
+             002030 206E 756D  
+             002034 6265 7220  
+             002038 2830 302D  
+             00203C 3939 293A  
+             002040 2000       
+ 9198   74                      
+ 9199   75                      MENU_MSG:
+ 9200   76  a002042 0D0A                    DC.B 13,10
+ 9201   77  a002044 3D3D 3D3D               DC.B "===== CALCULATOR =====",13,10
+             002048 3D20 4341  
+             00204C 4C43 554C  
+             002050 4154 4F52  
+             002054 203D 3D3D  
+             002058 3D3D 0D0A  
+ 9202   78  a00205C 2B20 4164               DC.B "+ Addition",13,10
+             002060 6469 7469  
+             002064 6F6E 0D0A  
+ 9203   79  a002068 2D20 5375               DC.B "- Subtraction",13,10
+             00206C 6274 7261  
+             002070 6374 696F  
+             002074 6E0D 0A    
+ 9204   80  a002077 2A20 4D75               DC.B "* Multiplication",13,10
+             00207B 6C74 6970  
+             00207F 6C69 6361  
+             002083 7469 6F6E  
+             002087 0D0A       
+ 9205   81  a002089 2F20 4469               DC.B "/ Division",13,10,0
+             00208D 7669 7369  
+             002091 6F6E 0D0A  
+             002095 00         
+ 9206   82                      
+ 9207   83                      CHOICE_PROMPT:
+ 9208   84  a002096 4368 6F6F               DC.B "Choose an operation (+,-,*,/): ",0
+             00209A 7365 2061  
+             00209E 6E20 6F70  
+             0020A2 6572 6174  
+             0020A6 696F 6E20  
+             0020AA 282B 2C2D  
+             0020AE 2C2A 2C2F  
+             0020B2 293A 2000  
+ 9209   85                      
+ 9210   86                      INVALID_NUM_MSG:
+ 9211   87  a0020B6 0D0A                    DC.B 13,10
+ 9212   88  a0020B8 496E 7661               DC.B "Invalid number! Try again.",13,10,0
+             0020BC 6C69 6420  
+             0020C0 6E75 6D62  
+             0020C4 6572 2120  
+             0020C8 5472 7920  
+             0020CC 6167 6169  
+             0020D0 6E2E 0D0A  
+             0020D4 00         
+
+Freescale HC12-Assembler 
+(c) Copyright Freescale 1987-2010
+
+ Abs. Rel.   Loc    Obj. code   Source line
+ ---- ----   ------ ---------   -----------
  9213   89                      
- 9214   90  a002009 163A 15             JSR getchar
- 9215   91  a00200C C030                SUBB #$30
- 9216   92  a00200E 7B10 01             STAB Tens1
+ 9214   90                      INVALID_OP_MSG:
+ 9215   91  a0020D5 0D0A                    DC.B 13,10
+ 9216   92  a0020D7 496E 7661               DC.B "Invalid operation! Try again.",13,10,0
+             0020DB 6C69 6420  
+             0020DF 6F70 6572  
+             0020E3 6174 696F  
+             0020E7 6E21 2054  
+             0020EB 7279 2061  
+             0020EF 6761 696E  
+             0020F3 2E0D 0A00  
  9217   93                      
- 9218   94  a002011 163A 15             JSR getchar
- 9219   95  a002014 C030                SUBB #$30
- 9220   96  a002016 7B10 02             STAB Ones1
+ 9218   94                      INVALID_REPEAT_MSG:
+ 9219   95  a0020F7 0D0A                    DC.B 13,10
+ 9220   96  a0020F9 506C 6561               DC.B "Please enter Y or N.",13,10,0
+             0020FD 7365 2065  
+             002101 6E74 6572  
+             002105 2059 206F  
+             002109 7220 4E2E  
+             00210D 0D0A 00    
  9221   97                      
- 9222   98                      ; Second number (two digits)
- 9223   99                      
- 9224  100  a002019 163A 15             JSR getchar
- 9225  101  a00201C C030                SUBB #$30
- 9226  102  a00201E 7B10 03             STAB Tens2
- 9227  103                      
- 9228  104  a002021 163A 15             JSR getchar
- 9229  105  a002024 C030                SUBB #$30
- 9230  106  a002026 7B10 04             STAB Ones2
- 9231  107                      ;--------------------------------
- 9232  108                      ; Convert First Number to Decimal
- 9233  109                      ;--------------------------------
- 9234  110                      
- 9235  111  a002029 B610 01             LDAA Tens1
- 9236  112  a00202C C60A                LDAB #10
- 9237  113  a00202E 12                  MUL
- 9238  114  a00202F FB10 02             ADDB Ones1
- 9239  115  a002032 7C10 05             STD Num1
+ 9222   98                      DIV_ZERO_MSG:
+ 9223   99  a002110 0D0A                    DC.B 13,10
+ 9224  100  a002112 4572 726F               DC.B "Error: Division by zero.",13,10,0
+             002116 723A 2044  
+             00211A 6976 6973  
+             00211E 696F 6E20  
+             002122 6279 207A  
+             002126 6572 6F2E  
+             00212A 0D0A 00    
+ 9225  101                      
+ 9226  102                      RESULT_MSG:
+ 9227  103  a00212D 0D0A                    DC.B 13,10
+ 9228  104  a00212F 5265 7375               DC.B "Result: ",0
+             002133 6C74 3A20  
+             002137 00         
+ 9229  105                      
+ 9230  106                      REMAINDER_MSG:
+ 9231  107  a002138 2052 656D               DC.B " Remainder: ",0
+             00213C 6169 6E64  
+             002140 6572 3A20  
+             002144 00         
+ 9232  108                      
+ 9233  109                      REPEAT_PROMPT:
+ 9234  110  a002145 0D0A                    DC.B 13,10
+ 9235  111  a002147 416E 6F74               DC.B "Another calculation? (Y/N): ",0
+             00214B 6865 7220  
+             00214F 6361 6C63  
+             002153 756C 6174  
+             002157 696F 6E3F  
+             00215B 2028 592F  
+             00215F 4E29 3A20  
+             002163 00         
+ 9236  112                      
+ 9237  113                      EXIT_MSG:
+ 9238  114  a002164 0D0A                    DC.B 13,10
+ 9239  115  a002166 4361 6C63               DC.B "Calculator closed.",13,10,0
+             00216A 756C 6174  
+             00216E 6F72 2063  
+             002172 6C6F 7365  
+             002176 642E 0D0A  
+             00217A 00         
  9240  116                      
- 9241  117                      ;--------------------------------
- 9242  118                      ; Convert Second Number to Decimal
- 9243  119                      ;--------------------------------
+ 9241  117                      ;====================================================
+
+Freescale HC12-Assembler 
+(c) Copyright Freescale 1987-2010
+
+ Abs. Rel.   Loc    Obj. code   Source line
+ ---- ----   ------ ---------   -----------
+ 9242  118                      ; MAIN PROGRAM
+ 9243  119                      ;====================================================
  9244  120                      
- 9245  121  a002035 B610 03             LDAA Tens2
- 9246  122  a002038 C60A                LDAB #10
- 9247  123  a00203A 12                  MUL
- 9248  124  a00203B FB10 04             ADDB Ones2
- 9249  125  a00203E 7C10 07             STD Num2
- 9250  126                      ;--------------------------------
- 9251  127                      ; Select Operation
- 9252  128                      ;--------------------------------
- 9253  129                      
- 9254  130  a002041 CC21 34             LDD #Menu
- 9255  131  a002044 163A 23             JSR printf
- 9256  132                      
- 9257  133  a002047 163A 15             JSR getchar
- 9258  134                      
- 9259  135  a00204A C131                CMPB #'1'
- 9260  136  a00204C 270E                BEQ Addition
- 9261  137                      
-
-Freescale HC12-Assembler 
-(c) Copyright Freescale 1987-2010
-
- Abs. Rel.   Loc    Obj. code   Source line
- ---- ----   ------ ---------   -----------
- 9262  138  a00204E C132                CMPB #'2'
- 9263  139  a002050 2715                BEQ Subtraction
- 9264  140                      
- 9265  141  a002052 C133                CMPB #'3'
- 9266  142  a002054 271C                BEQ Multiply
+ 9245  121                      MAIN:
+ 9246  122  a00217B CF3F FF                 LDS  #$3FFF
+ 9247  123  a00217E 163A 00                 JSR  TermInit
+ 9248  124                      
+ 9249  125                      MAIN_LOOP:
+ 9250  126  a002181 7910 00                 CLR  NUM1
+ 9251  127  a002184 7910 01                 CLR  NUM2
+ 9252  128  a002187 7910 02                 CLR  OPERATION
+ 9253  129  a00218A 7910 0B                 CLR  NEGATIVE_FLAG
+ 9254  130  a00218D 7910 06                 CLR  REMAINDER
+ 9255  131  a002190 CC00 00                 LDD  #0
+ 9256  132  a002193 7C10 03                 STD  RESULT
+ 9257  133                      
+ 9258  134                                  ; Get first number
+ 9259  135  a002196 CC20 03                 LDD  #NUM1_PROMPT
+ 9260  136  a002199 163A 23                 JSR  printf
+ 9261  137  a00219C 1622 2B                 JSR  GET_NUM1
+ 9262  138                      
+ 9263  139                                  ; Get second number
+ 9264  140  a00219F CC20 22                 LDD  #NUM2_PROMPT
+ 9265  141  a0021A2 163A 23                 JSR  printf
+ 9266  142  a0021A5 1622 6C                 JSR  GET_NUM2
  9267  143                      
- 9268  144  a002056 C134                CMPB #'4'
- 9269  145  a002058 2727                BEQ Divide
- 9270  146                      
- 9271  147  a00205A 2035                BRA Done
- 9272  148                              
- 9273  149                      ;--------------------------------
- 9274  150                      ; Calculator Operations
- 9275  151                      ;--------------------------------
- 9276  152                      Addition:
- 9277  153  a00205C FC10 05             LDD Num1
- 9278  154  a00205F F310 07             ADDD Num2
- 9279  155  a002062 7C10 09             STD Result
- 9280  156  a002065 202C                BRA DisplayResult
- 9281  157                      
- 9282  158                      Subtraction:
- 9283  159  a002067 FC10 05           LDD Num1
- 9284  160  a00206A B310 07           SUBD Num2
- 9285  161  a00206D 7C10 09           STD Result
- 9286  162  a002070 2021              BRA DisplayResult
- 9287  163                      ;--------------------------------
- 9288  164                      ; Multiplication: Num1 x Num2
- 9289  165                      ;--------------------------------
- 9290  166                      Multiply: 
- 9291  167  a002072 CE10 05           LDX #Num1
- 9292  168  a002075 A601              LDAA 1,x
- 9293  169  a002077 CE10 07           LDX #Num2
- 9294  170  a00207A E601              LDAB 1,x
- 9295  171  a00207C 12                MUL
- 9296  172  a00207D 7C10 09           STD Result
- 9297  173  a002080 3D                RTS
- 9298  174                      ;--------------------------------
- 9299  175                      ; Divide: Num1 x Num2
- 9300  176                      ;--------------------------------
- 9301  177                      Divide: 
- 9302  178  a002081 FE10 07          LDX Num2
- 9303  179  a002084 8E00 00          CPX #0
- 9304  180  a002087 2700             BEQ error_zero
- 9305  181                           
- 9306  182                      error_zero:
- 9307  183  a002089 CC21 85          LDD #ZeroError
- 9308  184  a00208C 163A 23          JSR printf
- 9309  185  a00208F 2000             BRA Done
- 9310  186                      
- 9311  187                      Done:
- 9312  188  a002091 20FE                BRA Done
- 9313  189                              
+ 9268  144                      ;====================================================
+ 9269  145                      ; SELECT OPERATION
+ 9270  146                      ;====================================================
+ 9271  147                      
+ 9272  148                      OPERATION_LOOP:
+ 9273  149  a0021A8 1622 1E                 JSR  SHOW_MENU
+ 9274  150  a0021AB 1622 AD                 JSR  GET_OPERATION
+ 9275  151  a0021AE 7B10 02                 STAB OPERATION
+ 9276  152                      
+ 9277  153  a0021B1 C12B                    CMPB #'+'
+ 9278  154  a0021B3 2714                    BEQ  DO_ADD
+ 9279  155                      
+ 9280  156  a0021B5 C12D                    CMPB #'-'
+ 9281  157  a0021B7 2716                    BEQ  DO_SUB
+ 9282  158                      
+ 9283  159  a0021B9 C12A                    CMPB #'*'
+ 9284  160  a0021BB 2718                    BEQ  DO_MUL
+ 9285  161                      
+ 9286  162  a0021BD C12F                    CMPB #'/'
+ 9287  163  a0021BF 271A                    BEQ  DO_DIV
+ 9288  164                      
+ 9289  165  a0021C1 CC20 D5                 LDD  #INVALID_OP_MSG
+ 9290  166  a0021C4 163A 23                 JSR  printf
+ 9291  167  a0021C7 20DF                    BRA  OPERATION_LOOP
+ 9292  168                      
+ 9293  169                      ;====================================================
+ 9294  170                      ; ARITHMETIC ROUTINE CALLS
+ 9295  171                      ;====================================================
+ 9296  172                      
+ 9297  173                      DO_ADD:
+ 9298  174  a0021C9 1622 B4                 JSR  ADD_NUM
+ 9299  175  a0021CC 0621 EF                 JMP  SHOW_RESULT
+ 9300  176                      
+ 9301  177                      DO_SUB:
+ 9302  178  a0021CF 1622 C4                 JSR  SUB_NUM
+ 9303  179  a0021D2 0621 EF                 JMP  SHOW_RESULT
+ 9304  180                      
+ 9305  181                      DO_MUL:
+
+Freescale HC12-Assembler 
+(c) Copyright Freescale 1987-2010
+
+ Abs. Rel.   Loc    Obj. code   Source line
+ ---- ----   ------ ---------   -----------
+ 9306  182  a0021D5 1622 E9                 JSR  MUL_NUM
+ 9307  183  a0021D8 0621 EF                 JMP  SHOW_RESULT
+ 9308  184                      
+ 9309  185                      DO_DIV:
+ 9310  186  a0021DB F710 01                 TST  NUM2
+ 9311  187  a0021DE 2706                    BEQ  DIV_ERROR
+ 9312  188  a0021E0 1622 F7                 JSR  DIV_NUM
+ 9313  189  a0021E3 0621 EF                 JMP  SHOW_RESULT
  9314  190                      
- 9315  191                      ;--------------------------------
- 9316  192                      ; Display Result in Decimal
- 9317  193                      ;--------------------------------
- 9318  194                      DisplayResult:
- 9319  195  a002093 CC21 A5             LDD #ResultMsg
- 9320  196  a002096 163A 23             JSR printf
- 9321  197                      
- 9322  198  a002099 7910 10             CLR NegativeFlag
+ 9315  191                      DIV_ERROR:
+ 9316  192  a0021E6 CC21 10                 LDD  #DIV_ZERO_MSG
+ 9317  193  a0021E9 163A 23                 JSR  printf
+ 9318  194  a0021EC 0621 F2                 JMP  ASK_AGAIN
+ 9319  195                      
+ 9320  196                      ;====================================================
+ 9321  197                      ; DISPLAY RESULT
+ 9322  198                      ;====================================================
  9323  199                      
- 9324  200  a00209C FC10 09             LDD Result
- 9325  201  a00209F 97                  TSTA
-
-Freescale HC12-Assembler 
-(c) Copyright Freescale 1987-2010
-
- Abs. Rel.   Loc    Obj. code   Source line
- ---- ----   ------ ---------   -----------
- 9326  202  a0020A0 2A12                BPL ConvertResult
- 9327  203                      
- 9328  204                              ; Convert negative result to positive
- 9329  205  a0020A2 FC10 09             LDD Result
- 9330  206  a0020A5 41                  COMA
- 9331  207  a0020A6 51                  COMB
- 9332  208  a0020A7 C300 01             ADDD #1
- 9333  209  a0020AA 7C10 0E             STD TempResult
- 9334  210                      
- 9335  211  a0020AD 8601                LDAA #1
- 9336  212  a0020AF 7A10 10             STAA NegativeFlag
- 9337  213  a0020B2 2003                BRA StartConversion
- 9338  214                      
- 9339  215                      ConvertResult:
- 9340  216  a0020B4 7C10 0E             STD TempResult
- 9341  217                      
- 9342  218                      StartConversion:
- 9343  219  a0020B7 B610 10             LDAA NegativeFlag
- 9344  220  a0020BA 2705                BEQ ConvertHundreds
+ 9324  200                      SHOW_RESULT:
+ 9325  201  a0021EF 1623 14                 JSR  DISPLAY_RESULT
+ 9326  202                      
+ 9327  203                      ;====================================================
+ 9328  204                      ; ASK FOR ANOTHER CALCULATION
+ 9329  205                      ;====================================================
+ 9330  206                      
+ 9331  207                      ASK_AGAIN:
+ 9332  208  a0021F2 CC21 45                 LDD  #REPEAT_PROMPT
+ 9333  209  a0021F5 163A 23                 JSR  printf
+ 9334  210  a0021F8 163A 15                 JSR  getchar
+ 9335  211                      
+ 9336  212  a0021FB C159                    CMPB #'Y'
+ 9337  213  a0021FD 2714                    BEQ  RESTART
+ 9338  214  a0021FF C179                    CMPB #'y'
+ 9339  215  a002201 2710                    BEQ  RESTART
+ 9340  216                      
+ 9341  217  a002203 C14E                    CMPB #'N'
+ 9342  218  a002205 270F                    BEQ  EXIT
+ 9343  219  a002207 C16E                    CMPB #'n'
+ 9344  220  a002209 270B                    BEQ  EXIT
  9345  221                      
- 9346  222  a0020BC C62D                LDAB #'-'
- 9347  223  a0020BE 163A 1C             JSR putchar
- 9348  224                      
- 9349  225                      ;--------------------------------
- 9350  226                      ; Convert Hundreds
- 9351  227                      ;--------------------------------
- 9352  228                      ConvertHundreds:
- 9353  229  a0020C1 7910 0B             CLR Hundreds
- 9354  230  a0020C4 7910 0C             CLR TensOut
- 9355  231  a0020C7 7910 0D             CLR OnesOut
+ 9346  222  a00220B CC20 F7                 LDD  #INVALID_REPEAT_MSG
+ 9347  223  a00220E 163A 23                 JSR  printf
+ 9348  224  a002211 20DF                    BRA  ASK_AGAIN
+ 9349  225                      
+ 9350  226                      RESTART:
+ 9351  227  a002213 0621 81                 JMP  MAIN_LOOP
+ 9352  228                      
+ 9353  229                      EXIT:
+ 9354  230  a002216 CC21 64                 LDD  #EXIT_MSG
+ 9355  231  a002219 163A 23                 JSR  printf
  9356  232                      
- 9357  233  a0020CA FC10 0E             LDD TempResult
- 9358  234                      
- 9359  235                      HundredsLoop:
- 9360  236  a0020CD 8C00 64             CPD #100
- 9361  237  a0020D0 2508                BLO ConvertTens
- 9362  238                      
- 9363  239  a0020D2 8300 64             SUBD #100
- 9364  240  a0020D5 7210 0B             INC Hundreds
- 9365  241  a0020D8 20F3                BRA HundredsLoop
- 9366  242                      
- 9367  243                      ;--------------------------------
- 9368  244                      ; Convert Tens
- 9369  245                      ;--------------------------------
- 9370  246                      ConvertTens:
- 9371  247  a0020DA 7C10 0E             STD TempResult
- 9372  248                      
- 9373  249                      TensLoop:
- 9374  250  a0020DD FC10 0E             LDD TempResult
- 9375  251  a0020E0 8C00 0A             CPD #10
- 9376  252  a0020E3 250B                BLO ConvertOnes
- 9377  253                      
- 9378  254  a0020E5 8300 0A             SUBD #10
- 9379  255  a0020E8 7C10 0E             STD TempResult
- 9380  256  a0020EB 7210 0C             INC TensOut
- 9381  257  a0020EE 20ED                BRA TensLoop
- 9382  258                      
- 9383  259                      ;--------------------------------
- 9384  260                      ; Convert Ones
- 9385  261                      ;--------------------------------
- 9386  262                      ConvertOnes:
- 9387  263  a0020F0 FC10 0E             LDD TempResult
- 9388  264  a0020F3 7B10 0D             STAB OnesOut
- 9389  265                      
+ 9357  233                      STOP:
+ 9358  234  a00221C 20FE                    BRA  STOP
+ 9359  235                      
+ 9360  236                      ;====================================================
+ 9361  237                      ; SHOW MENU
+ 9362  238                      ;====================================================
+ 9363  239                      
+ 9364  240                      SHOW_MENU:
+ 9365  241  a00221E CC20 42                 LDD  #MENU_MSG
+ 9366  242  a002221 163A 23                 JSR  printf
+ 9367  243                      
+ 9368  244  a002224 CC20 96                 LDD  #CHOICE_PROMPT
+ 9369  245  a002227 163A 23                 JSR  printf
 
 Freescale HC12-Assembler 
 (c) Copyright Freescale 1987-2010
 
  Abs. Rel.   Loc    Obj. code   Source line
  ---- ----   ------ ---------   -----------
- 9390  266                      ;--------------------------------
- 9391  267                      ; Print Decimal Result
- 9392  268                      ;--------------------------------
- 9393  269                      PrintResult:
- 9394  270  a0020F6 B610 0B             LDAA Hundreds
- 9395  271  a0020F9 2708                BEQ CheckTens
- 9396  272                      
- 9397  273  a0020FB F610 0B             LDAB Hundreds
- 9398  274  a0020FE CB30                ADDB #$30
- 9399  275  a002100 163A 1C             JSR putchar
- 9400  276                      
- 9401  277                      CheckTens:
- 9402  278  a002103 B610 0B             LDAA Hundreds
- 9403  279  a002106 2605                BNE PrintTens
- 9404  280                      
- 9405  281  a002108 B610 0C             LDAA TensOut
- 9406  282  a00210B 2708                BEQ PrintOnes
- 9407  283                      
- 9408  284                      PrintTens:
- 9409  285  a00210D F610 0C             LDAB TensOut
- 9410  286  a002110 CB30                ADDB #$30
- 9411  287  a002112 163A 1C             JSR putchar
- 9412  288                      
- 9413  289                      PrintOnes:
- 9414  290  a002115 F610 0D             LDAB OnesOut
- 9415  291  a002118 CB30                ADDB #$30
- 9416  292  a00211A 163A 1C             JSR putchar
- 9417  293                      
- 9418  294  a00211D 0620 91             JMP Done
- 9419  295                      
- 9420  296                      ;--------------------------------
- 9421  297                      ; Variables (place in RAM section)
- 9422  298                      ;--------------------------------
- 9423  299                      
+ 9370  246  a00222A 3D                      RTS
+ 9371  247                      
+ 9372  248                      ;====================================================
+ 9373  249                      ; GET FIRST NUMBER
+ 9374  250                      ;====================================================
+ 9375  251                      
+ 9376  252                      GET_NUM1:
+ 9377  253                      READ_FIRST:
+ 9378  254  a00222B 163A 15                 JSR  getchar
+ 9379  255  a00222E 163A 1C                 JSR  putchar
+ 9380  256  a002231 C130                    CMPB #'0'
+ 9381  257  a002233 2529                    BLO  FIRST_INVALID
+ 9382  258  a002235 C139                    CMPB #'9'
+ 9383  259  a002237 2225                    BHI  FIRST_INVALID
+ 9384  260  a002239 C030                    SUBB #'0'
+ 9385  261  a00223B 7B10 07                 STAB TENS1
+ 9386  262                      
+ 9387  263  a00223E 163A 15                 JSR  getchar
+ 9388  264  a002241 163A 1C                 JSR  putchar
+ 9389  265  a002244 C130                    CMPB #'0'
+ 9390  266  a002246 2516                    BLO  FIRST_INVALID
+ 9391  267  a002248 C139                    CMPB #'9'
+ 9392  268  a00224A 2212                    BHI  FIRST_INVALID
+ 9393  269  a00224C C030                    SUBB #'0'
+ 9394  270  a00224E 7B10 08                 STAB ONES1
+ 9395  271                      
+ 9396  272  a002251 B610 07                 LDAA TENS1
+ 9397  273  a002254 C60A                    LDAB #10
+ 9398  274  a002256 12                      MUL
+ 9399  275  a002257 FB10 08                 ADDB ONES1
+ 9400  276  a00225A 7B10 00                 STAB NUM1
+ 9401  277  a00225D 3D                      RTS
+ 9402  278                      
+ 9403  279                      FIRST_INVALID:
+ 9404  280  a00225E CC20 B6                 LDD  #INVALID_NUM_MSG
+ 9405  281  a002261 163A 23                 JSR  printf
+ 9406  282  a002264 CC20 03                 LDD  #NUM1_PROMPT
+ 9407  283  a002267 163A 23                 JSR  printf
+ 9408  284  a00226A 20BF                    BRA  READ_FIRST
+ 9409  285                      
+ 9410  286                      ;====================================================
+ 9411  287                      ; GET SECOND NUMBER
+ 9412  288                      ;====================================================
+ 9413  289                      
+ 9414  290                      GET_NUM2:
+ 9415  291                      READ_SECOND:
+ 9416  292  a00226C 163A 15                 JSR  getchar
+ 9417  293  a00226F 163A 1C                 JSR  putchar
+ 9418  294  a002272 C130                    CMPB #'0'
+ 9419  295  a002274 2529                    BLO  SECOND_INVALID
+ 9420  296  a002276 C139                    CMPB #'9'
+ 9421  297  a002278 2225                    BHI  SECOND_INVALID
+ 9422  298  a00227A C030                    SUBB #'0'
+ 9423  299  a00227C 7B10 09                 STAB TENS2
  9424  300                      
- 9425  301                      
- 9426  302                      ;--------------------------------
- 9427  303                      ; Prompt (place in ROM section)
- 9428  304                      ;--------------------------------
- 9429  305                      
- 9430  306  a002120 456E 7465   Prompt  DC.B 'Enter four digits: ',0
-             002124 7220 666F  
-             002128 7572 2064  
-             00212C 6967 6974  
-             002130 733A 2000  
- 9431  307                      
- 9432  308  a002134 5365 6C65   Menu    DC.B 'Select Operation:',13,10
-             002138 6374 204F  
-             00213C 7065 7261  
-             002140 7469 6F6E  
-             002144 3A0D 0A    
- 9433  309  a002147 312E 2041           DC.B '1. Addition',13,10
-             00214B 6464 6974  
-             00214F 696F 6E0D  
-             002153 0A         
- 9434  310  a002154 322E 2053           DC.B '2. Subtraction',13,10
-             002158 7562 7472  
-             00215C 6163 7469  
-             002160 6F6E 0D0A  
- 9435  311  a002164 332E 204D           DC.B '3. Multiplication',13,10
-             002168 756C 7469  
-             00216C 706C 6963  
-             002170 6174 696F  
-             002174 6E0D 0A    
+ 9425  301  a00227F 163A 15                 JSR  getchar
+ 9426  302  a002282 163A 1C                 JSR  putchar
+ 9427  303  a002285 C130                    CMPB #'0'
+ 9428  304  a002287 2516                    BLO  SECOND_INVALID
+ 9429  305  a002289 C139                    CMPB #'9'
+ 9430  306  a00228B 2212                    BHI  SECOND_INVALID
+ 9431  307  a00228D C030                    SUBB #'0'
+ 9432  308  a00228F 7B10 0A                 STAB ONES2
+ 9433  309                      
 
 Freescale HC12-Assembler 
 (c) Copyright Freescale 1987-2010
 
  Abs. Rel.   Loc    Obj. code   Source line
  ---- ----   ------ ---------   -----------
- 9436  312  a002177 342E 2044           DC.B '4. Division',13,10,0
-             00217B 6976 6973  
-             00217F 696F 6E0D  
-             002183 0A00       
- 9437  313                              
- 9438  314  a002185 4572 726F   ZeroError DC.B 'Error: Cannot divide by zero!',13,10,0
-             002189 723A 2043  
-             00218D 616E 6E6F  
-             002191 7420 6469  
-             002195 7669 6465  
-             002199 2062 7920  
-             00219D 7A65 726F  
-             0021A1 210D 0A00  
- 9439  315                      
- 9440  316  a0021A5 5265 7375   ResultMsg DC.B 'Result: ',0
-             0021A9 6C74 3A20  
-             0021AD 00         
- 9441  317                       
- 9442  318                       
- 9443  319                      ;-------End Program Lab#1------------- 
- 9444  320                      
- 9445  321                                               
- 9446  322                      ;**************************************************************
- 9447  323                      ;*                 Interrupt Vectors                          *
- 9448  324                      ;**************************************************************
- 9449  325                                  ORG   Vreset
- 9450  326  a00FFFE 2000                    DC.W  Entry         ; Reset Vector
- 9451  327                       
+ 9434  310  a002292 B610 09                 LDAA TENS2
+ 9435  311  a002295 C60A                    LDAB #10
+ 9436  312  a002297 12                      MUL
+ 9437  313  a002298 FB10 0A                 ADDB ONES2
+ 9438  314  a00229B 7B10 01                 STAB NUM2
+ 9439  315  a00229E 3D                      RTS
+ 9440  316                      
+ 9441  317                      SECOND_INVALID:
+ 9442  318  a00229F CC20 B6                 LDD  #INVALID_NUM_MSG
+ 9443  319  a0022A2 163A 23                 JSR  printf
+ 9444  320  a0022A5 CC20 22                 LDD  #NUM2_PROMPT
+ 9445  321  a0022A8 163A 23                 JSR  printf
+ 9446  322  a0022AB 20BF                    BRA  READ_SECOND
+ 9447  323                      
+ 9448  324                      ;====================================================
+ 9449  325                      ; GET OPERATION
+ 9450  326                      ;====================================================
+ 9451  327                      
+ 9452  328                      GET_OPERATION:
+ 9453  329  a0022AD 163A 15                 JSR  getchar
+ 9454  330  a0022B0 163A 1C                 JSR  putchar
+ 9455  331  a0022B3 3D                      RTS
+ 9456  332                      
+ 9457  333                      ;====================================================
+ 9458  334                      ; ADDITION
+ 9459  335                      ;====================================================
+ 9460  336                      
+ 9461  337                      ADD_NUM:
+ 9462  338  a0022B4 7910 0B                 CLR  NEGATIVE_FLAG
+ 9463  339  a0022B7 87                      CLRA
+ 9464  340  a0022B8 F610 00                 LDAB NUM1
+ 9465  341  a0022BB FB10 01                 ADDB NUM2
+ 9466  342  a0022BE 8900                    ADCA #0
+ 9467  343  a0022C0 7C10 03                 STD  RESULT
+ 9468  344  a0022C3 3D                      RTS
+ 9469  345                      
+ 9470  346                      ;====================================================
+ 9471  347                      ; SUBTRACTION
+ 9472  348                      ;====================================================
+ 9473  349                      
+ 9474  350                      SUB_NUM:
+ 9475  351  a0022C4 7910 0B                 CLR  NEGATIVE_FLAG
+ 9476  352                      
+ 9477  353  a0022C7 B610 00                 LDAA NUM1
+ 9478  354  a0022CA B110 01                 CMPA NUM2
+ 9479  355  a0022CD 240D                    BHS  SUB_POSITIVE
+ 9480  356                      
+ 9481  357  a0022CF 8601                    LDAA #1
+ 9482  358  a0022D1 7A10 0B                 STAA NEGATIVE_FLAG
+ 9483  359                      
+ 9484  360  a0022D4 B610 01                 LDAA NUM2
+ 9485  361  a0022D7 B010 00                 SUBA NUM1
+ 9486  362  a0022DA 2006                    BRA  SUB_STORE
+ 9487  363                      
+ 9488  364                      SUB_POSITIVE:
+ 9489  365  a0022DC B610 00                 LDAA NUM1
+ 9490  366  a0022DF B010 01                 SUBA NUM2
+ 9491  367                      
+ 9492  368                      SUB_STORE:
+ 9493  369  a0022E2 180E                    TAB
+ 9494  370  a0022E4 87                      CLRA
+ 9495  371  a0022E5 7C10 03                 STD  RESULT
+ 9496  372  a0022E8 3D                      RTS
+ 9497  373                      
+
+Freescale HC12-Assembler 
+(c) Copyright Freescale 1987-2010
+
+ Abs. Rel.   Loc    Obj. code   Source line
+ ---- ----   ------ ---------   -----------
+ 9498  374                      ;====================================================
+ 9499  375                      ; MULTIPLICATION
+ 9500  376                      ;====================================================
+ 9501  377                      
+ 9502  378                      MUL_NUM:
+ 9503  379  a0022E9 7910 0B                 CLR  NEGATIVE_FLAG
+ 9504  380                      
+ 9505  381  a0022EC B610 00                 LDAA NUM1
+ 9506  382  a0022EF F610 01                 LDAB NUM2
+ 9507  383  a0022F2 12                      MUL
+ 9508  384                      
+ 9509  385  a0022F3 7C10 03                 STD  RESULT
+ 9510  386  a0022F6 3D                      RTS
+ 9511  387                      
+ 9512  388                      ;====================================================
+ 9513  389                      ; DIVISION
+ 9514  390                      ;====================================================
+ 9515  391                      
+ 9516  392                      DIV_NUM:
+ 9517  393  a0022F7 7910 0B                 CLR  NEGATIVE_FLAG
+ 9518  394                      
+ 9519  395  a0022FA CE00 00                 LDX  #0
+ 9520  396  a0022FD F610 00                 LDAB NUM1
+ 9521  397  a002300 1AE5                    ABX
+ 9522  398                      
+ 9523  399  a002302 87                      CLRA
+ 9524  400  a002303 F610 01                 LDAB NUM2
+ 9525  401  a002306 1810                    IDIV
+ 9526  402                      
+ 9527  403  a002308 7B10 06                 STAB REMAINDER
+ 9528  404                      
+ 9529  405  a00230B B754                    TFR  X,D
+ 9530  406  a00230D 7B10 05                 STAB QUOTIENT
+ 9531  407  a002310 7C10 03                 STD  RESULT
+ 9532  408  a002313 3D                      RTS
+ 9533  409                      
+ 9534  410                      ;====================================================
+ 9535  411                      ; DISPLAY RESULT
+ 9536  412                      ;====================================================
+ 9537  413                      
+ 9538  414                      DISPLAY_RESULT:
+ 9539  415  a002314 CC21 2D                 LDD  #RESULT_MSG
+ 9540  416  a002317 163A 23                 JSR  printf
+ 9541  417                      
+ 9542  418  a00231A F710 0B                 TST  NEGATIVE_FLAG
+ 9543  419  a00231D 2705                    BEQ  DISPLAY_POSITIVE
+ 9544  420                      
+ 9545  421  a00231F C62D                    LDAB #'-'
+ 9546  422  a002321 163A 1C                 JSR  putchar
+ 9547  423                      
+ 9548  424                      DISPLAY_POSITIVE:
+ 9549  425  a002324 FC10 03                 LDD  RESULT
+ 9550  426  a002327 7C10 0C                 STD  TEMP_RESULT
+ 9551  427                      
+ 9552  428  a00232A 7910 0E                 CLR  DIGIT_COUNT
+ 9553  429                      
+ 9554  430                      CONVERT_LOOP:
+ 9555  431  a00232D FC10 0C                 LDD  TEMP_RESULT
+ 9556  432  a002330 CE00 0A                 LDX  #10
+ 9557  433  a002333 1810                    IDIV
+ 9558  434                      
+ 9559  435  a002335 CB30                    ADDB #'0'
+ 9560  436  a002337 37                      PSHB
+ 9561  437  a002338 7210 0E                 INC  DIGIT_COUNT
+
+Freescale HC12-Assembler 
+(c) Copyright Freescale 1987-2010
+
+ Abs. Rel.   Loc    Obj. code   Source line
+ ---- ----   ------ ---------   -----------
+ 9562  438                      
+ 9563  439  a00233B 7E10 0C                 STX  TEMP_RESULT
+ 9564  440  a00233E 8E00 00                 CPX  #0
+ 9565  441  a002341 26EA                    BNE  CONVERT_LOOP
+ 9566  442                      
+ 9567  443                      PRINT_LOOP:
+ 9568  444  a002343 33                      PULB
+ 9569  445  a002344 163A 1C                 JSR  putchar
+ 9570  446  a002347 7310 0E                 DEC  DIGIT_COUNT
+ 9571  447  a00234A 26F7                    BNE  PRINT_LOOP
+ 9572  448                      
+ 9573  449  a00234C B610 02                 LDAA OPERATION
+ 9574  450  a00234F 812F                    CMPA #'/'
+ 9575  451  a002351 262F                    BNE  RESULT_DONE
+ 9576  452                      
+ 9577  453  a002353 CC21 38                 LDD  #REMAINDER_MSG
+ 9578  454  a002356 163A 23                 JSR  printf
+ 9579  455                      
+ 9580  456  a002359 87                      CLRA
+ 9581  457  a00235A F610 06                 LDAB REMAINDER
+ 9582  458  a00235D 7C10 0C                 STD  TEMP_RESULT
+ 9583  459                      
+ 9584  460  a002360 7910 0E                 CLR  DIGIT_COUNT
+ 9585  461                      
+ 9586  462                      REM_CONVERT:
+ 9587  463  a002363 FC10 0C                 LDD  TEMP_RESULT
+ 9588  464  a002366 CE00 0A                 LDX  #10
+ 9589  465  a002369 1810                    IDIV
+ 9590  466                      
+ 9591  467  a00236B CB30                    ADDB #'0'
+ 9592  468  a00236D 37                      PSHB
+ 9593  469  a00236E 7210 0E                 INC  DIGIT_COUNT
+ 9594  470                      
+ 9595  471  a002371 7E10 0C                 STX  TEMP_RESULT
+ 9596  472  a002374 8E00 00                 CPX  #0
+ 9597  473  a002377 26EA                    BNE  REM_CONVERT
+ 9598  474                      REM_PRINT:
+ 9599  475  a002379 33                      PULB
+ 9600  476  a00237A 163A 1C                 JSR  putchar
+ 9601  477  a00237D 7310 0E                 DEC  DIGIT_COUNT
+ 9602  478  a002380 26F7                    BNE  REM_PRINT
+ 9603  479                      
+ 9604  480                      RESULT_DONE:
+ 9605  481  a002382 3D                      RTS
+ 9606  482                      
+ 9607  483                      ;====================================================
+ 9608  484                      ; INTERRUPT VECTOR
+ 9609  485                      ;====================================================
+ 9610  486                                  ORG Vreset
+ 9611  487  a00FFFE 2000                    DC.W Entry
+ 9612  488                      
+ 9613  489                      ;================ END PROGRAM ======================

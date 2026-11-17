@@ -428,8 +428,8 @@ DISPLAY_POSITIVE:
             CLR  DIGIT_COUNT
 
 CONVERT_LOOP:
-            LDX  TEMP_RESULT
-            LDD  #10
+            LDD  TEMP_RESULT
+            LDX  #10
             IDIV
 
             ADDB #'0'
@@ -460,8 +460,8 @@ PRINT_LOOP:
             CLR  DIGIT_COUNT
 
 REM_CONVERT:
-            LDX  TEMP_RESULT
-            LDD  #10
+            LDD  TEMP_RESULT
+            LDX  #10
             IDIV
 
             ADDB #'0'
@@ -471,7 +471,6 @@ REM_CONVERT:
             STX  TEMP_RESULT
             CPX  #0
             BNE  REM_CONVERT
-
 REM_PRINT:
             PULB
             JSR  putchar

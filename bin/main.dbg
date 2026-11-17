@@ -1,318 +1,484 @@
+
 ;*****************************************************************
 ;* Lab1.ASM
-;
-;Code Entry, Assembly, and Execution 
-;(Put your name and date here) 
-;--------------------------------------- 
-;* -this is the sample code for Lab1
-;* -for Full Chip Simulation or Board -- select your target
-;* DO NOT DELETE ANY LINES IN THIS TEMPLATE
-;* --ONLY FILL IN SECTIONS
+;* Two-Digit Calculator - HCS12 / CodeWarrior
+;* Integrated Team Project
 ;*****************************************************************
-; export symbols
-            XDEF Entry, _Startup            ; export 'Entry' symbol
-            ABSENTRY Entry        ; for absolute assembly: mark this as application entry point
 
-; Include derivative-specific definitions 
-		INCLUDE 'derivative.inc' 
+; Export symbols
+            XDEF Entry, _Startup
+            ABSENTRY Entry
+
+; Include derivative-specific definitions
+            INCLUDE 'derivative.inc'
         ENDIF
-		
-;-------------------------------------------------- 
-; Equates Section  
-;----------------------------------------------------  
-ROMStart    EQU  $2000  ; absolute address to place my code
 
-;---------------------------------------------------- 
-; Variable/Data Section
-;----------------------------------------------------  
-            ORG RAMStart   ; loc $1000  (RAMEnd = $3FFF)
-; Insert here your data definitions here
+;----------------------------------------------------
+; Equates Section
+;----------------------------------------------------
+ROMStart    EQU $2000
 
-sum dc.b 0 ;Sum byte stored here
+;----------------------------------------------------
+; Variable/Data Section (RAM)
+;----------------------------------------------------
+            ORG RAMStart
 
-Tens1   RMB 1
-Ones1   RMB 1
-Tens2   RMB 1
-Ones2   RMB 1
+NUM1          DS.B 1    ; First number (00-99)
+NUM2          DS.B 1    ; Second number (00-99)
+OPERATION     DS.B 1    ; Selected operation
+RESULT        DS.W 1    ; 16-bit result
+QUOTIENT      DS.B 1    ; Division quotient
+REMAINDER     DS.B 1    ; Division remainder
 
-Num1    RMB 2
-Num2    RMB 2
-Result  RMB 2
+TENS1         DS.B 1    ; Tens digit of NUM1
+ONES1         DS.B 1    ; Ones digit of NUM1
+TENS2         DS.B 1    ; Tens digit of NUM2
+ONES2         DS.B 1    ; Ones digit of NUM2
 
-Hundreds   RMB 1
-TensOut    RMB 1
-OnesOut    RMB 1
-TempResult RMB 2
-NegativeFlag RMB 1 
+NEGATIVE_FLAG DS.B 1    ; Negative result indicator
+TEMP_RESULT   DS.W 1    ; Temporary result
+DIGIT_COUNT   DS.B 1    ; Number of digits to print
 
-       INCLUDE 'utilities.inc'
-       INCLUDE 'LCD.inc'
+            INCLUDE 'utilities.inc'
+            INCLUDE 'LCD.inc'
 
-;---------------------------------------------------- 
-; Code Section
-;---------------------------------------------------- 
-            ORG   ROMStart  ; loc $2000
+;----------------------------------------------------
+; Code Section (ROM)
+;----------------------------------------------------
+            ORG ROMStart
+
 Entry:
 _Startup:
-            ; remap the RAM &amp; EEPROM here. See EB386.pdf
+
  ifdef _HCS12_SERIALMON
-  endif
+ endif
 
-;---------------------------------------------------- 
-; Insert your code here
-;---------------------------------------------------- 
-        
-;--------------------------------
-; Two Digit Calculator
-; HCS12 / CodeWarrior
-;--------------------------------
+            JMP MAIN
 
-        JSR TermInit
+;====================================================
+; PROMPTS AND MESSAGES
+;====================================================
 
-;--------------------------------
-; Get User Input
-;--------------------------------
+NUM1_PROMPT:
+            DC.B 13,10
+            DC.B "Enter first number (00-99): ",0
 
-        LDD #Prompt
-        JSR printf
+NUM2_PROMPT:
+            DC.B 13,10
+            DC.B "Enter second number (00-99): ",0
 
-; First number (two digits)
+MENU_MSG:
+            DC.B 13,10
+            DC.B "===== CALCULATOR =====",13,10
+            DC.B "+ Addition",13,10
+            DC.B "- Subtraction",13,10
+            DC.B "* Multiplication",13,10
+            DC.B "/ Division",13,10,0
 
-        JSR getchar
-        SUBB #$30
-        STAB Tens1
+CHOICE_PROMPT:
+            DC.B "Choose an operation (+,-,*,/): ",0
 
-        JSR getchar
-        SUBB #$30
-        STAB Ones1
+INVALID_NUM_MSG:
+            DC.B 13,10
+            DC.B "Invalid number! Try again.",13,10,0
 
-; Second number (two digits)
+INVALID_OP_MSG:
+            DC.B 13,10
+            DC.B "Invalid operation! Try again.",13,10,0
 
-        JSR getchar
-        SUBB #$30
-        STAB Tens2
+INVALID_REPEAT_MSG:
+            DC.B 13,10
+            DC.B "Please enter Y or N.",13,10,0
 
-        JSR getchar
-        SUBB #$30
-        STAB Ones2
-;--------------------------------
-; Convert First Number to Decimal
-;--------------------------------
+DIV_ZERO_MSG:
+            DC.B 13,10
+            DC.B "Error: Division by zero.",13,10,0
 
-        LDAA Tens1
-        LDAB #10
-        MUL
-        ADDB Ones1
-        STD Num1
+RESULT_MSG:
+            DC.B 13,10
+            DC.B "Result: ",0
 
-;--------------------------------
-; Convert Second Number to Decimal
-;--------------------------------
+REMAINDER_MSG:
+            DC.B " Remainder: ",0
 
-        LDAA Tens2
-        LDAB #10
-        MUL
-        ADDB Ones2
-        STD Num2
-;--------------------------------
-; Select Operation
-;--------------------------------
+REPEAT_PROMPT:
+            DC.B 13,10
+            DC.B "Another calculation? (Y/N): ",0
 
-        LDD #Menu
-        JSR printf
+EXIT_MSG:
+            DC.B 13,10
+            DC.B "Calculator closed.",13,10,0
 
-        JSR getchar
+;====================================================
+; MAIN PROGRAM
+;====================================================
 
-        CMPB #'1'
-        BEQ Addition
+MAIN:
+            LDS  #$3FFF
+            JSR  TermInit
 
-        CMPB #'2'
-        BEQ Subtraction
+MAIN_LOOP:
+            CLR  NUM1
+            CLR  NUM2
+            CLR  OPERATION
+            CLR  NEGATIVE_FLAG
+            CLR  REMAINDER
+            LDD  #0
+            STD  RESULT
 
-        CMPB #'3'
-        BEQ Multiply
+            ; Get first number
+            LDD  #NUM1_PROMPT
+            JSR  printf
+            JSR  GET_NUM1
 
-        CMPB #'4'
-        BEQ Divide
+            ; Get second number
+            LDD  #NUM2_PROMPT
+            JSR  printf
+            JSR  GET_NUM2
 
-        BRA Done
-        
-;--------------------------------
-; Calculator Operations
-;--------------------------------
-Addition:
-        LDD Num1
-        ADDD Num2
-        STD Result
-        BRA DisplayResult
+;====================================================
+; SELECT OPERATION
+;====================================================
 
-Subtraction:
-      LDD Num1
-      SUBD Num2
-      STD Result
-      BRA DisplayResult
-;--------------------------------
-; Multiplication: Num1 x Num2
-;--------------------------------
-Multiply: 
-      LDX #Num1
-      LDAA 1,x
-      LDX #Num2
-      LDAB 1,x
-      MUL
-      STD Result
-      RTS
-;--------------------------------
-; Divide: Num1 x Num2
-;--------------------------------
-Divide: 
-     LDX Num2
-     CPX #0
-     BEQ error_zero
-     
-error_zero:
-     LDD #ZeroError
-     JSR printf
-     BRA Done
+OPERATION_LOOP:
+            JSR  SHOW_MENU
+            JSR  GET_OPERATION
+            STAB OPERATION
 
-Done:
-        BRA Done
-        
+            CMPB #'+'
+            BEQ  DO_ADD
 
-;--------------------------------
-; Display Result in Decimal
-;--------------------------------
-DisplayResult:
-        LDD #ResultMsg
-        JSR printf
+            CMPB #'-'
+            BEQ  DO_SUB
 
-        CLR NegativeFlag
+            CMPB #'*'
+            BEQ  DO_MUL
 
-        LDD Result
-        TSTA
-        BPL ConvertResult
+            CMPB #'/'
+            BEQ  DO_DIV
 
-        ; Convert negative result to positive
-        LDD Result
-        COMA
-        COMB
-        ADDD #1
-        STD TempResult
+            LDD  #INVALID_OP_MSG
+            JSR  printf
+            BRA  OPERATION_LOOP
 
-        LDAA #1
-        STAA NegativeFlag
-        BRA StartConversion
+;====================================================
+; ARITHMETIC ROUTINE CALLS
+;====================================================
 
-ConvertResult:
-        STD TempResult
+DO_ADD:
+            JSR  ADD_NUM
+            JMP  SHOW_RESULT
 
-StartConversion:
-        LDAA NegativeFlag
-        BEQ ConvertHundreds
+DO_SUB:
+            JSR  SUB_NUM
+            JMP  SHOW_RESULT
 
-        LDAB #'-'
-        JSR putchar
+DO_MUL:
+            JSR  MUL_NUM
+            JMP  SHOW_RESULT
 
-;--------------------------------
-; Convert Hundreds
-;--------------------------------
-ConvertHundreds:
-        CLR Hundreds
-        CLR TensOut
-        CLR OnesOut
+DO_DIV:
+            TST  NUM2
+            BEQ  DIV_ERROR
+            JSR  DIV_NUM
+            JMP  SHOW_RESULT
 
-        LDD TempResult
+DIV_ERROR:
+            LDD  #DIV_ZERO_MSG
+            JSR  printf
+            JMP  ASK_AGAIN
 
-HundredsLoop:
-        CPD #100
-        BLO ConvertTens
+;====================================================
+; DISPLAY RESULT
+;====================================================
 
-        SUBD #100
-        INC Hundreds
-        BRA HundredsLoop
+SHOW_RESULT:
+            JSR  DISPLAY_RESULT
 
-;--------------------------------
-; Convert Tens
-;--------------------------------
-ConvertTens:
-        STD TempResult
+;====================================================
+; ASK FOR ANOTHER CALCULATION
+;====================================================
 
-TensLoop:
-        LDD TempResult
-        CPD #10
-        BLO ConvertOnes
+ASK_AGAIN:
+            LDD  #REPEAT_PROMPT
+            JSR  printf
+            JSR  getchar
 
-        SUBD #10
-        STD TempResult
-        INC TensOut
-        BRA TensLoop
+            CMPB #'Y'
+            BEQ  RESTART
+            CMPB #'y'
+            BEQ  RESTART
 
-;--------------------------------
-; Convert Ones
-;--------------------------------
-ConvertOnes:
-        LDD TempResult
-        STAB OnesOut
+            CMPB #'N'
+            BEQ  EXIT
+            CMPB #'n'
+            BEQ  EXIT
 
-;--------------------------------
-; Print Decimal Result
-;--------------------------------
-PrintResult:
-        LDAA Hundreds
-        BEQ CheckTens
+            LDD  #INVALID_REPEAT_MSG
+            JSR  printf
+            BRA  ASK_AGAIN
 
-        LDAB Hundreds
-        ADDB #$30
-        JSR putchar
+RESTART:
+            JMP  MAIN_LOOP
 
-CheckTens:
-        LDAA Hundreds
-        BNE PrintTens
+EXIT:
+            LDD  #EXIT_MSG
+            JSR  printf
 
-        LDAA TensOut
-        BEQ PrintOnes
+STOP:
+            BRA  STOP
 
-PrintTens:
-        LDAB TensOut
-        ADDB #$30
-        JSR putchar
+;====================================================
+; SHOW MENU
+;====================================================
 
-PrintOnes:
-        LDAB OnesOut
-        ADDB #$30
-        JSR putchar
+SHOW_MENU:
+            LDD  #MENU_MSG
+            JSR  printf
 
-        JMP Done
+            LDD  #CHOICE_PROMPT
+            JSR  printf
+            RTS
 
-;--------------------------------
-; Variables (place in RAM section)
-;--------------------------------
+;====================================================
+; GET FIRST NUMBER
+;====================================================
 
+GET_NUM1:
+READ_FIRST:
+            JSR  getchar
+            JSR  putchar
+            CMPB #'0'
+            BLO  FIRST_INVALID
+            CMPB #'9'
+            BHI  FIRST_INVALID
+            SUBB #'0'
+            STAB TENS1
 
+            JSR  getchar
+            JSR  putchar
+            CMPB #'0'
+            BLO  FIRST_INVALID
+            CMPB #'9'
+            BHI  FIRST_INVALID
+            SUBB #'0'
+            STAB ONES1
 
-;--------------------------------
-; Prompt (place in ROM section)
-;--------------------------------
+            LDAA TENS1
+            LDAB #10
+            MUL
+            ADDB ONES1
+            STAB NUM1
+            RTS
 
-Prompt  DC.B 'Enter four digits: ',0
+FIRST_INVALID:
+            LDD  #INVALID_NUM_MSG
+            JSR  printf
+            LDD  #NUM1_PROMPT
+            JSR  printf
+            BRA  READ_FIRST
 
-Menu    DC.B 'Select Operation:',13,10
-        DC.B '1. Addition',13,10
-        DC.B '2. Subtraction',13,10
-        DC.B '3. Multiplication',13,10
-        DC.B '4. Division',13,10,0
-        
-ZeroError DC.B 'Error: Cannot divide by zero!',13,10,0
+;====================================================
+; GET SECOND NUMBER
+;====================================================
 
-ResultMsg DC.B 'Result: ',0
- 
- 
-;-------End Program Lab#1------------- 
+GET_NUM2:
+READ_SECOND:
+            JSR  getchar
+            JSR  putchar
+            CMPB #'0'
+            BLO  SECOND_INVALID
+            CMPB #'9'
+            BHI  SECOND_INVALID
+            SUBB #'0'
+            STAB TENS2
 
-                         
-;**************************************************************
-;*                 Interrupt Vectors                          *
-;**************************************************************
-            ORG   Vreset
-            DC.W  Entry         ; Reset Vector
- 
+            JSR  getchar
+            JSR  putchar
+            CMPB #'0'
+            BLO  SECOND_INVALID
+            CMPB #'9'
+            BHI  SECOND_INVALID
+            SUBB #'0'
+            STAB ONES2
+
+            LDAA TENS2
+            LDAB #10
+            MUL
+            ADDB ONES2
+            STAB NUM2
+            RTS
+
+SECOND_INVALID:
+            LDD  #INVALID_NUM_MSG
+            JSR  printf
+            LDD  #NUM2_PROMPT
+            JSR  printf
+            BRA  READ_SECOND
+
+;====================================================
+; GET OPERATION
+;====================================================
+
+GET_OPERATION:
+            JSR  getchar
+            JSR  putchar
+            RTS
+
+;====================================================
+; ADDITION
+;====================================================
+
+ADD_NUM:
+            CLR  NEGATIVE_FLAG
+            CLRA
+            LDAB NUM1
+            ADDB NUM2
+            ADCA #0
+            STD  RESULT
+            RTS
+
+;====================================================
+; SUBTRACTION
+;====================================================
+
+SUB_NUM:
+            CLR  NEGATIVE_FLAG
+
+            LDAA NUM1
+            CMPA NUM2
+            BHS  SUB_POSITIVE
+
+            LDAA #1
+            STAA NEGATIVE_FLAG
+
+            LDAA NUM2
+            SUBA NUM1
+            BRA  SUB_STORE
+
+SUB_POSITIVE:
+            LDAA NUM1
+            SUBA NUM2
+
+SUB_STORE:
+            TAB
+            CLRA
+            STD  RESULT
+            RTS
+
+;====================================================
+; MULTIPLICATION
+;====================================================
+
+MUL_NUM:
+            CLR  NEGATIVE_FLAG
+
+            LDAA NUM1
+            LDAB NUM2
+            MUL
+
+            STD  RESULT
+            RTS
+
+;====================================================
+; DIVISION
+;====================================================
+
+DIV_NUM:
+            CLR  NEGATIVE_FLAG
+
+            LDX  #0
+            LDAB NUM1
+            ABX
+
+            CLRA
+            LDAB NUM2
+            IDIV
+
+            STAB REMAINDER
+
+            TFR  X,D
+            STAB QUOTIENT
+            STD  RESULT
+            RTS
+
+;====================================================
+; DISPLAY RESULT
+;====================================================
+
+DISPLAY_RESULT:
+            LDD  #RESULT_MSG
+            JSR  printf
+
+            TST  NEGATIVE_FLAG
+            BEQ  DISPLAY_POSITIVE
+
+            LDAB #'-'
+            JSR  putchar
+
+DISPLAY_POSITIVE:
+            LDD  RESULT
+            STD  TEMP_RESULT
+
+            CLR  DIGIT_COUNT
+
+CONVERT_LOOP:
+            LDD  TEMP_RESULT
+            LDX  #10
+            IDIV
+
+            ADDB #'0'
+            PSHB
+            INC  DIGIT_COUNT
+
+            STX  TEMP_RESULT
+            CPX  #0
+            BNE  CONVERT_LOOP
+
+PRINT_LOOP:
+            PULB
+            JSR  putchar
+            DEC  DIGIT_COUNT
+            BNE  PRINT_LOOP
+
+            LDAA OPERATION
+            CMPA #'/'
+            BNE  RESULT_DONE
+
+            LDD  #REMAINDER_MSG
+            JSR  printf
+
+            CLRA
+            LDAB REMAINDER
+            STD  TEMP_RESULT
+
+            CLR  DIGIT_COUNT
+
+REM_CONVERT:
+            LDD  TEMP_RESULT
+            LDX  #10
+            IDIV
+
+            ADDB #'0'
+            PSHB
+            INC  DIGIT_COUNT
+
+            STX  TEMP_RESULT
+            CPX  #0
+            BNE  REM_CONVERT
+REM_PRINT:
+            PULB
+            JSR  putchar
+            DEC  DIGIT_COUNT
+            BNE  REM_PRINT
+
+RESULT_DONE:
+            RTS
+
+;====================================================
+; INTERRUPT VECTOR
+;====================================================
+            ORG Vreset
+            DC.W Entry
+
+;================ END PROGRAM ======================
