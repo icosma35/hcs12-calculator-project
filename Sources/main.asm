@@ -252,7 +252,7 @@ SHOW_MENU:
 GET_NUM1:
 READ_FIRST:
             JSR  getchar
-            JSR  Putchar
+            JSR  putchar
             CMPB #'0'
             BLO  FIRST_INVALID
             CMPB #'9'
@@ -261,7 +261,7 @@ READ_FIRST:
             STAB TENS1
 
             JSR  getchar
-            JSR  Putchar
+            JSR  putchar
             CMPB #'0'
             BLO  FIRST_INVALID
             CMPB #'9'
@@ -290,7 +290,7 @@ FIRST_INVALID:
 GET_NUM2:
 READ_SECOND:
             JSR  getchar
-            JSR  Putchar
+            JSR  putchar
             CMPB #'0'
             BLO  SECOND_INVALID
             CMPB #'9'
@@ -299,7 +299,7 @@ READ_SECOND:
             STAB TENS2
 
             JSR  getchar
-            JSR  Putchar
+            JSR  putchar
             CMPB #'0'
             BLO  SECOND_INVALID
             CMPB #'9'
